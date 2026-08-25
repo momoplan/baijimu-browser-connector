@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>浏览器授权</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <main>
+      <section class="panel">
+        <div class="heading">
+          <div>
+            <p class="eyebrow">ORIGIN ACCESS</p>
+            <h2>授权网站范围</h2>
+            <p>每行填写一个精确 origin，例如 <code>https://channels.weixin.qq.com</code>。路径、查询参数和通配符不会被接受。</p>
+          </div>
+          <span id="runtime-status" class="badge">读取中</span>
+        </div>
+        <label>
+          <span>允许的 origins</span>
+          <textarea id="allowed-origins" rows="7" spellcheck="false" placeholder="https://example.com"></textarea>
+        </label>
+        <div class="grid">
+          <label>
+            <span>浏览器可执行文件（可选）</span>
+            <input id="browser-path" type="text" placeholder="自动检测 Chrome / Edge / Chromium" spellcheck="false" />
+          </label>
+          <label class="check">
+            <input id="headless" type="checkbox" />
+            <span>无头模式（不显示浏览器窗口）</span>
+          </label>
+        </div>
+        <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+        <div class="actions">
+          <button id="save" class="primary" type="button">保存授权</button>
+          <button id="launch" type="button">启动浏览器</button>
+          <button id="close" type="button">关闭浏览器</button>
+          <button id="refresh" type="button">刷新状态</button>
+        </div>
+      </section>
+      <section class="panel safety">
+        <h2>本地状态与安全边界</h2>
+        <ul>
+          <li>登录 Cookie 和浏览器配置只保存在该应用的私有数据目录，升级应用时继续保留。</li>
+          <li>远程能力只能访问上方授权的 origin；跳转到其他 origin 会被浏览器层阻止。</li>
+          <li>修改授权会先关闭受控浏览器，防止旧页面继续使用已撤销权限。</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

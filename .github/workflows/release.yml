@@ -1,0 +1,192 @@
+name: release-browser-connector
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      release_ref:
+        description: "Tag to publish, or main for a rehearsal"
+        required: true
+        default: "main"
+        type: string
+      publish:
+        description: "Publish the immutable tagged release"
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: browser-connector-release-${{ github.event_name == 'push' && github.ref_name || inputs.release_ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          ref: ${{ github.event_name == 'push' && github.ref_name || inputs.release_ref }}
+
+      - name: Validate identity and quality gates
+        id: release
+        shell: bash
+        env:
+          RELEASE_REF: ${{ github.event_name == 'push' && github.ref_name || inputs.release_ref }}
+          PUBLISH_REQUESTED: ${{ github.event_name == 'push' || inputs.publish }}
+        run: |
+          set -euo pipefail
+          npm ci
+          npm test
+          npm run materialize-manifest
+          version="$(jq -er .version package.json)"
+          app_id="$(jq -er .appId release/local-app.json)"
+          test "$(jq -r .version package-lock.json)" = "$version"
+          test "$(jq -r '.packages[""].version' package-lock.json)" = "$version"
+          test "$(jq -r .version connector.json)" = "$version"
+          test "$(jq -r .appId connector.json)" = "$app_id"
+          test "$(jq -r .source.repo connector.json)" = "$GITHUB_REPOSITORY"
+          test "$(jq -r .source.revision connector.json)" = "v$version"
+          test "$(jq -r .hostRequirements.minimumVersion connector.json)" = "0.6.0"
+          publish=false
+          if [ "$PUBLISH_REQUESTED" = "true" ]; then
+            publish=true
+            test "$RELEASE_REF" = "v$version"
+            test "$(git rev-list -n 1 "v$version")" = "$(git rev-parse HEAD)"
+          fi
+          {
+            echo "app_id=$app_id"
+            echo "publish=$publish"
+            echo "version=$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Assemble immutable package
+        shell: bash
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          package="$RUNNER_TEMP/browser-connector"
+          mkdir -p "$package"
+          cp -R connector.json package.json package-lock.json bin src ui README.md LICENSE "$package/"
+          npm ci --omit=dev --ignore-scripts --prefix "$package"
+          find "$package" -type l -exec test -e {} \;
+          find "$package" -type f -name '*.node' -print -quit | grep -q . && {
+            echo "Browser Connector package must remain platform-independent" >&2
+            exit 1
+          }
+          artifact="$RUNNER_TEMP/baijimu-browser-connector-${VERSION}-universal.zip"
+          (cd "$package" && zip -qry "$artifact" .)
+          sha256sum "$artifact" | awk '{print $1}' > "$artifact.sha256"
+
+      - name: Publish GitHub release
+        if: steps.release.outputs.publish == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          artifact="$RUNNER_TEMP/baijimu-browser-connector-${VERSION}-universal.zip"
+          gh release view "v$VERSION" >/dev/null 2>&1 \
+            || gh release create "v$VERSION" --verify-tag --title "Browser Connector $VERSION" --notes "Browser Connector $VERSION"
+          release_dir="$RUNNER_TEMP/existing-release"
+          mkdir -p "$release_dir"
+          for file in "$artifact" "$artifact.sha256"; do
+            name="$(basename "$file")"
+            if gh release download "v$VERSION" --pattern "$name" --dir "$release_dir" >/dev/null 2>&1; then
+              cmp "$file" "$release_dir/$name"
+            else
+              gh release upload "v$VERSION" "$file"
+            fi
+          done
+
+      - name: Publish content-addressed OSS artifact
+        if: steps.release.outputs.publish == 'true'
+        id: oss
+        shell: bash
+        env:
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          test -n "$OSS_ACCESS_KEY_ID"
+          test -n "$OSS_ACCESS_KEY_SECRET"
+          ossutil_version=2.3.0
+          ossutil_checksum=3ae4d9fc85a7a6e9f5654d1599766f1a3a42a3692870887b5ae9338d582ef65a
+          curl -fsSL --retry 5 \
+            "https://gosspublic.alicdn.com/ossutil/v2/${ossutil_version}/ossutil-${ossutil_version}-linux-amd64.zip" \
+            -o "$RUNNER_TEMP/ossutil.zip"
+          printf '%s  %s\n' "$ossutil_checksum" "$RUNNER_TEMP/ossutil.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/ossutil.zip" -d "$RUNNER_TEMP/ossutil"
+          install -m 0755 \
+            "$RUNNER_TEMP/ossutil/ossutil-${ossutil_version}-linux-amd64/ossutil" \
+            "$RUNNER_TEMP/ossutil-bin"
+
+          bucket=baijimu-lowcode-public-20260420
+          endpoint=oss-cn-beijing.aliyuncs.com
+          public_base=https://download.baijimu.com
+          artifact="$RUNNER_TEMP/baijimu-browser-connector-${VERSION}-universal.zip"
+          name="$(basename "$artifact")"
+          checksum="$(sha256sum "$artifact" | awk '{print $1}')"
+          object="local-app-artifacts/browser-connector/releases/v${VERSION}/${checksum}/${name}"
+          source="$public_base/$object"
+          downloaded="$RUNNER_TEMP/verify-browser-connector.zip"
+          if curl -fsSL --retry 3 "$source" -o "$downloaded" 2>/dev/null; then
+            test "$(sha256sum "$downloaded" | awk '{print $1}')" = "$checksum"
+          else
+            "$RUNNER_TEMP/ossutil-bin" cp "$artifact" "oss://$bucket/$object" \
+              --access-key-id "$OSS_ACCESS_KEY_ID" \
+              --access-key-secret "$OSS_ACCESS_KEY_SECRET" \
+              --endpoint "$endpoint" --region cn-beijing --force --no-progress \
+              --content-type application/zip \
+              --cache-control 'public,max-age=31536000,immutable' >/dev/null
+            curl -fsSL --retry 6 --retry-all-errors --retry-delay 3 "$source" -o "$downloaded"
+            test "$(sha256sum "$downloaded" | awk '{print $1}')" = "$checksum"
+          fi
+          {
+            echo "artifact_url=$source"
+            echo "artifact_sha256=$checksum"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install registered Baijimu CLI
+        if: steps.release.outputs.publish == 'true'
+        shell: bash
+        env:
+          BAIJIMU_CLI_URL: ${{ vars.BAIJIMU_CLI_URL }}
+          BAIJIMU_CLI_SHA256: ${{ vars.BAIJIMU_CLI_SHA256 }}
+        run: |
+          set -euo pipefail
+          test -n "$BAIJIMU_CLI_URL"
+          [[ "$BAIJIMU_CLI_URL" == https://* ]]
+          [[ "$BAIJIMU_CLI_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          curl -fsSL --retry 5 --retry-all-errors "$BAIJIMU_CLI_URL" -o "$RUNNER_TEMP/baijimu-cli.zip"
+          test "$(sha256sum "$RUNNER_TEMP/baijimu-cli.zip" | awk '{print $1}')" = "$BAIJIMU_CLI_SHA256"
+          mkdir -p "$RUNNER_TEMP/baijimu-cli"
+          unzip -q "$RUNNER_TEMP/baijimu-cli.zip" -d "$RUNNER_TEMP/baijimu-cli"
+          cli="$(find "$RUNNER_TEMP/baijimu-cli" -type f -name baijimu -print -quit)"
+          test -n "$cli"
+          chmod 755 "$cli"
+          echo "BAIJIMU_CLI=$cli" >> "$GITHUB_ENV"
+
+      - name: Register immutable version and submit review
+        if: steps.release.outputs.publish == 'true'
+        shell: bash
+        env:
+          LOCAL_APP_MARKET_PUBLISH_TOKEN: ${{ secrets.LOCAL_APP_MARKET_PUBLISH_TOKEN }}
+          LOCAL_APP_OWNER_WORKSPACE_ID: ${{ vars.LOCAL_APP_OWNER_WORKSPACE_ID }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          tools/release/publish-market.sh \
+            "$VERSION" \
+            connector.json \
+            '${{ steps.oss.outputs.artifact_url }}' \
+            '${{ steps.oss.outputs.artifact_sha256 }}'

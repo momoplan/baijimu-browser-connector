@@ -1,0 +1,4 @@
+node_modules/
+coverage/
+connector.json
+.local-app-publication-status

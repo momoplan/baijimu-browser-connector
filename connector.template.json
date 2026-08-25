@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "3.0.0",
+  "appId": "__SERVER_ALLOCATED_APP_ID__",
+  "name": "浏览器连接器",
+  "version": "0.1.0",
+  "description": "在用户明确授权的网站范围内，通过百积木安全操作本机 Chrome、Edge 或 Chromium，并保留本地浏览器登录态。",
+  "publisher": {
+    "name": "Baijimu",
+    "homepage": "https://baijimu.com"
+  },
+  "source": {
+    "type": "github",
+    "repo": "momoplan/baijimu-browser-connector",
+    "revision": "v0.1.0"
+  },
+  "runtime": {
+    "type": "process",
+    "command": "baijimu-browser-connector",
+    "args": ["start"],
+    "stopArgs": ["stop"],
+    "startPolicy": "manual",
+    "processOwnership": "host",
+    "env": {
+      "BAIJIMU_BROWSER_CONNECTOR_PORT": "18440"
+    },
+    "healthCheck": {
+      "type": "http",
+      "url": "http://127.0.0.1:18440/healthz",
+      "timeoutSecs": 2,
+      "expectStatus": 200
+    }
+  },
+  "transport": {
+    "type": "http",
+    "baseUrl": "http://127.0.0.1:18440"
+  },
+  "management": {
+    "type": "http",
+    "baseUrl": "http://127.0.0.1:18440",
+    "auth": {"type": "connector_token"},
+    "operations": {
+      "getState": {"method": "GET", "path": "/management/v1/state"},
+      "saveAuthorization": {"method": "POST", "path": "/management/v1/authorization"},
+      "launchBrowser": {"method": "POST", "path": "/management/v1/browser/launch"},
+      "closeBrowser": {"method": "POST", "path": "/management/v1/browser/close"}
+    }
+  },
+  "hostRequirements": {
+    "minimumVersion": "0.6.0",
+    "capabilities": ["connector.process.host-managed.v1"]
+  },
+  "ui": {
+    "type": "embedded",
+    "entry": "ui/index.html",
+    "title": "浏览器授权",
+    "defaultView": true
+  },
+  "upgradeReview": {
+    "configuration": "not_applicable",
+    "interfaces": "declared",
+    "database": "not_applicable"
+  },
+  "remoteCapabilities": [
+    {"name": "browser.page.read", "risk": "high", "description": "读取用户已授权网站中的页面地址、标题、无障碍快照和截图。"},
+    {"name": "browser.page.write", "risk": "high", "description": "在用户已授权网站中打开页面、导航、点击、填写和按键。"}
+  ],
+  "methods": [
+    {"name": "status", "description": "读取浏览器运行状态。", "path": "/invoke/status", "httpMethod": "POST", "timeoutSecs": 5, "input_schema": {"type": "object", "additionalProperties": false}},
+    {"name": "listPages", "description": "列出当前受控浏览器页面。", "path": "/invoke/listPages", "httpMethod": "POST", "timeoutSecs": 5, "input_schema": {"type": "object", "additionalProperties": false}},
+    {"name": "openPage", "description": "在授权 origin 中打开页面。", "path": "/invoke/openPage", "httpMethod": "POST", "timeoutSecs": 30, "input_schema": {"type": "object", "required": ["url"], "properties": {"url": {"type": "string", "maxLength": 8192}}, "additionalProperties": false}},
+    {"name": "navigate", "description": "把指定页面导航到授权 URL。", "path": "/invoke/navigate", "httpMethod": "POST", "timeoutSecs": 30, "input_schema": {"type": "object", "required": ["pageId", "url"], "properties": {"pageId": {"type": "string"}, "url": {"type": "string", "maxLength": 8192}}, "additionalProperties": false}},
+    {"name": "snapshot", "description": "读取指定页面的无障碍树快照。", "path": "/invoke/snapshot", "httpMethod": "POST", "timeoutSecs": 15, "input_schema": {"type": "object", "required": ["pageId"], "properties": {"pageId": {"type": "string"}}, "additionalProperties": false}},
+    {"name": "click", "description": "点击授权页面中的元素。", "path": "/invoke/click", "httpMethod": "POST", "timeoutSecs": 20, "input_schema": {"type": "object", "required": ["pageId", "selector"], "properties": {"pageId": {"type": "string"}, "selector": {"type": "string"}}, "additionalProperties": false}},
+    {"name": "fill", "description": "填写授权页面中的输入控件。", "path": "/invoke/fill", "httpMethod": "POST", "timeoutSecs": 20, "input_schema": {"type": "object", "required": ["pageId", "selector", "value"], "properties": {"pageId": {"type": "string"}, "selector": {"type": "string"}, "value": {"type": "string", "maxLength": 100000}}, "additionalProperties": false}},
+    {"name": "press", "description": "向授权页面中的元素发送按键。", "path": "/invoke/press", "httpMethod": "POST", "timeoutSecs": 20, "input_schema": {"type": "object", "required": ["pageId", "selector", "key"], "properties": {"pageId": {"type": "string"}, "selector": {"type": "string"}, "key": {"type": "string", "maxLength": 128}}, "additionalProperties": false}},
+    {"name": "screenshot", "description": "截取授权页面 PNG 图像。", "path": "/invoke/screenshot", "httpMethod": "POST", "timeoutSecs": 30, "input_schema": {"type": "object", "required": ["pageId"], "properties": {"pageId": {"type": "string"}, "fullPage": {"type": "boolean", "default": false}}, "additionalProperties": false}},
+    {"name": "closePage", "description": "关闭指定受控页面。", "path": "/invoke/closePage", "httpMethod": "POST", "timeoutSecs": 10, "input_schema": {"type": "object", "required": ["pageId"], "properties": {"pageId": {"type": "string"}}, "additionalProperties": false}}
+  ],
+  "events": []
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@baijimu/browser-connector",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "baijimu-browser-connector": "bin/browser-connector.mjs"
+  },
+  "scripts": {
+    "start": "node bin/browser-connector.mjs start",
+    "test": "node --test test/*.test.mjs",
+    "materialize-manifest": "node tools/materialize-manifest.mjs",
+    "record-registration": "node tools/record-registration.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.55.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

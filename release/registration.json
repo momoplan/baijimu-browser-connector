@@ -1,0 +1,9 @@
+{
+  "name": "浏览器连接器",
+  "description": "在用户明确授权的网站范围内，通过百积木安全操作本机浏览器并保留本地登录态。",
+  "publisher": "Baijimu",
+  "risk": "可读取和操作用户主动授权 origin 中的已登录页面；不允许越过 origin 白名单。",
+  "riskLevel": "high",
+  "capability": "browser.page.read,browser.page.write",
+  "platforms": ["macos", "windows", "linux"]
+}

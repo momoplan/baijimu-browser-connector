@@ -1,0 +1,26 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #172033; background: transparent; }
+* { box-sizing: border-box; }
+body { margin: 0; background: transparent; }
+main { display: grid; gap: 16px; padding: 4px; }
+.panel { border: 1px solid #dde3ed; border-radius: 14px; background: #fff; padding: 20px; box-shadow: 0 8px 24px rgba(20, 34, 61, .05); }
+.heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+.eyebrow { color: #6d5ce7; font-size: 11px; font-weight: 800; letter-spacing: .12em; margin: 0 0 6px; }
+h2 { font-size: 18px; margin: 0 0 8px; }
+p, li { color: #5a6476; font-size: 14px; line-height: 1.6; }
+label { display: grid; gap: 7px; margin-top: 16px; font-size: 13px; font-weight: 700; }
+textarea, input[type="text"] { width: 100%; border: 1px solid #cdd5e2; border-radius: 9px; padding: 10px 12px; background: #fff; color: #172033; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+textarea:focus, input:focus { border-color: #6d5ce7; outline: 3px solid rgba(109, 92, 231, .14); }
+.grid { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: end; }
+.check { display: flex; align-items: center; gap: 8px; min-height: 40px; white-space: nowrap; }
+.actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+button { border: 1px solid #cdd5e2; border-radius: 9px; background: #fff; color: #283246; padding: 9px 14px; font: inherit; font-weight: 700; cursor: pointer; }
+button.primary { background: #5f4dde; border-color: #5f4dde; color: #fff; }
+button:disabled { opacity: .55; cursor: wait; }
+.badge { flex: none; border-radius: 999px; background: #eef1f6; color: #667085; padding: 5px 10px; font-size: 12px; font-weight: 800; }
+.badge.running { background: #e5f8ee; color: #137a48; }
+.notice { margin-top: 14px; border-radius: 9px; background: #edf7ff; color: #195b88; padding: 10px 12px; font-size: 13px; }
+.notice.error { background: #fff0f0; color: #a12525; }
+.safety ul { margin: 8px 0 0; padding-left: 20px; }
+code { font-size: .9em; }
+@media (max-width: 620px) { .heading { display: grid; } .grid { grid-template-columns: 1fr; } .check { white-space: normal; } }
+@media (prefers-color-scheme: dark) { :root { color: #edf1f8; } .panel { background: #171a22; border-color: #303746; box-shadow: none; } p, li { color: #aeb7c7; } textarea, input[type="text"], button { background: #20242d; color: #edf1f8; border-color: #424b5d; } .badge { background: #2b303b; color: #bac3d2; } }
