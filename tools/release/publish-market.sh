@@ -32,6 +32,14 @@ connector_manifest="$(jq -ce --arg version "$version" '
 ' "$connector_manifest_path")"
 app_id="$(printf '%s' "$connector_manifest" | jq -er .appId)"
 source_repo="$(printf '%s' "$connector_manifest" | jq -er .source.repo)"
+if [[ "$source_repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+  source_repo_url="https://github.com/$source_repo"
+elif [[ "$source_repo" =~ ^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+  source_repo_url="$source_repo"
+else
+  echo "connector source.repo must be a GitHub owner/repository slug or HTTPS URL" >&2
+  exit 1
+fi
 
 market_manifest="$(jq -nc \
   --argjson connector "$connector_manifest" \
@@ -55,7 +63,7 @@ test "$(sha256sum "$work_dir/artifact.zip" | awk '{print $1}')" = "$artifact_sha
 jq -n \
   --arg version "$version" \
   --arg source "$artifact_url" \
-  --arg repo "$source_repo" \
+  --arg repo "$source_repo_url" \
   --arg revision "v$version" \
   --arg checksum "$artifact_sha256" \
   --argjson capabilities "$capabilities" \
@@ -79,7 +87,7 @@ existing="$(printf '%s' "$app_json" | jq -c --arg version "$version" 'first((.da
 if [ -n "$existing" ]; then
   printf '%s' "$existing" | jq -e \
     --arg source "$artifact_url" \
-    --arg repo "$source_repo" \
+    --arg repo "$source_repo_url" \
     --arg revision "v$version" \
     --arg checksum "$artifact_sha256" \
     --argjson manifest "$market_manifest" '
