@@ -2,12 +2,12 @@
   "schemaVersion": "3.0.0",
   "appId": "__SERVER_ALLOCATED_APP_ID__",
   "name": "浏览器连接器",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "在用户明确授权的网站范围内，通过百积木安全操作本机 Chrome、Edge 或 Chromium，并保留本地浏览器登录态。",
   "source": {
     "type": "github",
     "repo": "momoplan/baijimu-browser-connector",
-    "revision": "v0.1.0"
+    "revision": "v0.1.1"
   },
   "runtime": {
     "type": "process",
