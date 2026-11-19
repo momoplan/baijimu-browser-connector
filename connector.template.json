@@ -4,10 +4,6 @@
   "name": "浏览器连接器",
   "version": "0.1.0",
   "description": "在用户明确授权的网站范围内，通过百积木安全操作本机 Chrome、Edge 或 Chromium，并保留本地浏览器登录态。",
-  "publisher": {
-    "name": "Baijimu",
-    "homepage": "https://baijimu.com"
-  },
   "source": {
     "type": "github",
     "repo": "momoplan/baijimu-browser-connector",
