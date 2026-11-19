@@ -53,7 +53,6 @@ market_manifest="$(jq -nc \
       {platform:"linux",arch:"x86_64",source:$source,checksum:$checksum}
     ]
   }')"
-capabilities="$(printf '%s' "$connector_manifest" | jq -c '[.remoteCapabilities[]?.name]')"
 
 work_dir="$(mktemp -d "${TMPDIR:-/tmp}/browser-connector-market.XXXXXX")"
 trap 'rm -rf "$work_dir"' EXIT
@@ -66,9 +65,8 @@ jq -n \
   --arg repo "$source_repo_url" \
   --arg revision "v$version" \
   --arg checksum "$artifact_sha256" \
-  --argjson capabilities "$capabilities" \
   --argjson manifest "$market_manifest" \
-  '{version:$version,sourceType:"https",source:$source,repo:$repo,revision:$revision,checksum:$checksum,capabilities:$capabilities,manifest:$manifest}' \
+  '{version:$version,sourceType:"https",source:$source,repo:$repo,revision:$revision,checksum:$checksum,manifest:$manifest}' \
   > "$work_dir/version.json"
 
 auth_file="$work_dir/baijimu-auth.json"

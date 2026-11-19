@@ -60,10 +60,6 @@
     "interfaces": "declared",
     "database": "not_applicable"
   },
-  "remoteCapabilities": [
-    {"name": "browser.page.read", "risk": "high", "description": "读取用户已授权网站中的页面地址、标题、无障碍快照和截图。"},
-    {"name": "browser.page.write", "risk": "high", "description": "在用户已授权网站中打开页面、导航、点击、填写和按键。"}
-  ],
   "methods": [
     {"name": "status", "description": "读取浏览器运行状态。", "path": "/invoke/status", "httpMethod": "POST", "timeoutSecs": 5, "input_schema": {"type": "object", "additionalProperties": false}},
     {"name": "listPages", "description": "列出当前受控浏览器页面。", "path": "/invoke/listPages", "httpMethod": "POST", "timeoutSecs": 5, "input_schema": {"type": "object", "additionalProperties": false}},
